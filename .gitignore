@@ -1,0 +1,16 @@
+# Build output
+/pkgs/
+/build/sources/
+*.txz
+*.tgz
+*.txz.sha256
+*.txz.sig
+*.txz.pem
+*.plg
+
+# Editor / OS
+*.swp
+*~
+.DS_Store
+.idea/
+.vscode/
