@@ -12,7 +12,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 cau_require clevis cryptsetup jq >/dev/null || { echo '{"ok":false,"error":"missing tools"}'; exit 1; }
 cau_is_sealed || { echo '{"ok":false,"error":"no sealed secret — seal the passphrase first"}'; exit 0; }
 
-tmpkey="$(mktemp)"; chmod 600 "$tmpkey"
+tmpkey="$(cau_mktemp_secret)"; chmod 600 "$tmpkey"
 trap 'shred -u "$tmpkey" 2>/dev/null || rm -f "$tmpkey"' EXIT
 
 if ! clevis decrypt < "$SECRET_JWE" > "$tmpkey" 2>/dev/null; then

@@ -54,7 +54,8 @@ if [ "$checked" -gt 0 ] && [ "$opened" -ne "$checked" ]; then
   fail "Recovered key opened ${opened}/${checked} encrypted devices — refusing to stage a key that won't unlock everything."
 fi
 
-cau_notify normal "Array auto-unlock ready" \
-  "Passphrase recovered from tang${checked:+ (validated against $checked device(s))}; the array will start automatically."
-cau_log "keyfile staged; handing off to Unraid array start"
+msg="Passphrase recovered from tang; the array will start automatically."
+[ "$checked" -gt 0 ] && msg="Passphrase recovered from tang and validated against $checked device(s); the array will start automatically."
+cau_notify normal "Array auto-unlock ready" "$msg"
+cau_log "keyfile staged (validated against $checked device(s)); handing off to Unraid array start"
 exit 0

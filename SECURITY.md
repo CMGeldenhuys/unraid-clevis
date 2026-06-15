@@ -11,6 +11,29 @@ within 7 days.
 The latest released version on the `main` branch is supported. Pre-release `develop` builds are
 not supported for production use.
 
+## Where the sealed secret lives (important tradeoff)
+
+The sealed passphrase (`secret.jwe`) is stored on the Unraid **boot flash** (`/boot`),
+not inside a LUKS header. It is a tang-encrypted JWE, so it is **not** a plaintext
+secret — recovering the passphrase from it requires contacting the tang server.
+
+The practical consequence: the auto-unlock secret is protected by **"possession of the
+boot flash" AND "network access to tang"** — *not* by possession of a data disk. So:
+
+- **Stolen data disk(s) only:** stay encrypted (the JWE is not on them; an attacker
+  needs your passphrase). Same as without this plugin.
+- **Stolen/cloned boot flash + reachable tang:** the passphrase can be recovered.
+  Keep the boot flash physically secure, keep tang on an isolated network the
+  attacker cannot reach, and prefer running tang somewhere that is *not* co-located
+  with (or stolen alongside) the server.
+- **Whole server stolen with tang reachable:** compromised — as with any unattended
+  network-unlock scheme. Mitigate by ensuring tang is not reachable from where the
+  hardware would end up (e.g. tang on a separate site/VLAN).
+
+If you need the secret to travel with the encrypted disk instead of the flash, do not
+use auto-unlock (enter the passphrase manually). Storing the JWE in a LUKS2 token is a
+planned future option.
+
 ## Threat model
 
 This plugin automates recovery of a LUKS passphrase via clevis + a remote tang server (NBDE). The

@@ -29,5 +29,5 @@ jobs:
         run: |
           gh issue create \
             --title "Supply-chain drift: a pinned source no longer matches deps.lock" \
-            --body "The scheduled verify-deps run failed. A pinned upstream artifact's SHA-256 changed. Investigate before the next release: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
-            --label security || true
+            --body "The scheduled verify-deps run failed. A pinned upstream artifact's SHA-256 (or base-image digest) changed. Investigate before the next release: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --label security

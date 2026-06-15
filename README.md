@@ -41,6 +41,10 @@ deliberately different, hardened design:
 - If tang is unreachable at boot, the plugin does nothing and Unraid falls back to its normal
   manual passphrase prompt — it never weakens security silently.
 - Your existing LUKS passphrase is kept as a recovery key and is never removed.
+- **Tradeoff:** the sealed passphrase lives (tang-encrypted) on the boot flash, so the
+  auto-unlock secret is protected by *possession of the boot flash* **and** *network
+  access to tang* — keep tang on an isolated network and the flash physically secure.
+  See [SECURITY.md](SECURITY.md#where-the-sealed-secret-lives-important-tradeoff).
 
 See [SECURITY.md](SECURITY.md) and [`docs/recovery.md`](docs/recovery.md).
 

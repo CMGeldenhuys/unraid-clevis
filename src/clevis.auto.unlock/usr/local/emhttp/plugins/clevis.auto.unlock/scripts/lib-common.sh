@@ -123,3 +123,7 @@ cau_wipe_keyfile() {
   shred -u -n1 "$KEYFILE" 2>/dev/null || rm -f "$KEYFILE"
   cau_log "wiped $KEYFILE"
 }
+
+# Temp file for transient cleartext (e.g. a passphrase under validation), pinned to
+# RAM-backed tmpfs so it never lands on persistent storage.
+cau_mktemp_secret() { mktemp -p /dev/shm 2>/dev/null || mktemp; }

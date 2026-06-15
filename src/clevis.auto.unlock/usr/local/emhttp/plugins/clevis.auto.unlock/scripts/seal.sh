@@ -28,7 +28,7 @@ cau_require clevis cryptsetup jq curl jose >/dev/null || emit_err "Required tool
 pass="$(cat)"
 [ -n "$pass" ] || emit_err "Empty passphrase."
 
-tmpkey="$(mktemp)"; chmod 600 "$tmpkey"; printf '%s' "$pass" > "$tmpkey"
+tmpkey="$(cau_mktemp_secret)"; chmod 600 "$tmpkey"; printf '%s' "$pass" > "$tmpkey"
 
 # The passphrase must open EVERY encrypted device.
 total=0; opened=0; failed=""
@@ -56,9 +56,12 @@ clevis decrypt < "$SECRET_JWE" >/dev/null 2>&1 \
 
 cur="$([ -f "$CONFIG_FILE" ] && cat "$CONFIG_FILE" || echo '{}')"
 tmp="$(mktemp)"
-jq -n --arg url "$url" --arg thp "$thp" --argjson cur "$cur" \
-  '$cur + {enabled:true, tang:{url:$url,thp:$thp}, unlock_mode:($cur.unlock_mode // "event"), network_timeout:($cur.network_timeout // 60)}' \
-  > "$tmp" && mv "$tmp" "$CONFIG_FILE"
+if ! { jq -n --arg url "$url" --arg thp "$thp" --argjson cur "$cur" \
+        '$cur + {enabled:true, tang:{url:$url,thp:$thp}, unlock_mode:($cur.unlock_mode // "event"), network_timeout:($cur.network_timeout // 60)}' \
+        > "$tmp" && mv "$tmp" "$CONFIG_FILE"; }; then
+  rm -f "$tmp" "$SECRET_JWE"
+  emit_err "Could not write config — seal rolled back."
+fi
 chmod 0644 "$CONFIG_FILE" 2>/dev/null || true
 
 cau_notify normal "Array passphrase sealed to tang" \

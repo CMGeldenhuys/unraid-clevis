@@ -22,7 +22,7 @@ cau_require clevis cryptsetup jq curl jose >/dev/null || emit_err "Required tool
 [ -n "$url" ] || emit_err "No tang server URL given or configured."
 cau_is_sealed || emit_err "Nothing is sealed yet."
 
-tmpkey="$(mktemp)"; chmod 600 "$tmpkey"
+tmpkey="$(cau_mktemp_secret)"; chmod 600 "$tmpkey"
 clevis decrypt < "$SECRET_JWE" > "$tmpkey" 2>/dev/null \
   || emit_err "Could not recover the current secret (the old tang key may be gone). Re-seal with your passphrase instead."
 [ -s "$tmpkey" ] || emit_err "Recovered an empty secret."

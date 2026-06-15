@@ -52,10 +52,10 @@ function cau_run(array $argv, ?string $stdin = null): array {
     return [$rc, $out, $err];
 }
 
-/* Run a script that emits a JSON object on stdout and relay it. */
+/* Run a script that emits a JSON object on stdout and relay it (validated). */
 function cau_run_json(array $argv, ?string $stdin = null): void {
     [$rc, $out, $err] = cau_run($argv, $stdin);
-    $out = trim($out);
-    if ($out !== '' && $out[0] === '{') { cau_json($out); }
+    $decoded = json_decode(trim($out), true);
+    if (is_array($decoded)) { cau_json($decoded); }
     cau_json(['ok' => ($rc === 0), 'error' => trim($err) ?: "exit $rc"]);
 }
