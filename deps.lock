@@ -1,0 +1,23 @@
+# deps.lock — pinned, integrity-verified inputs for the Clevis Auto-Unlock build.
+#
+# Every shipped runtime artifact (jose, luksmeta, clevis) is built ONLY from the
+# upstream sources pinned below. fetch-sources.sh downloads each into
+# build/sources/ and refuses to continue unless its SHA-256 matches. verify-deps.sh
+# re-checks these (CI gate + scheduled supply-chain drift alarm).
+#
+# jansson is a BUILD-ONLY dependency: it is statically linked into libjose so the
+# shipped jose has no external libjansson dependency (no system mutation on Unraid).
+#
+# Format (whitespace-separated, '#' comments ignored):
+#   SOURCE  <name> <version> <sha256> <url>
+#   IMAGE   <ref>  <digest>
+
+SOURCE jansson  2.15.0  a7eac7765000373165f9373eb748be039c10b2efc00be9af3467ec92357d8954  https://github.com/akheron/jansson/releases/download/v2.15.0/jansson-2.15.0.tar.bz2
+SOURCE jose     15      1d055c445392aa48d709ecd6e56220384ae2b480496e270818bddf1f219c8659  https://github.com/latchset/jose/releases/download/v15/jose-15.tar.xz
+SOURCE luksmeta 10      a842538ba39680c8319c41dac0bcc082fe40fb43342561761925c0daa1a48f28  https://github.com/latchset/luksmeta/releases/download/v10/luksmeta-10.tar.bz2
+SOURCE clevis   23      466e9e87fddeb2531259cacd8e19de23cef7c6992ee835a643dad585fc45018f  https://github.com/latchset/clevis/releases/download/v23/clevis-23.tar.xz
+
+# Slackware base images (pinned by digest). 15.0 ships OpenSSL 1.1 (Unraid v6 / libcrypto.so.1.1),
+# current ships OpenSSL 3 (Unraid v7 / libcrypto.so.3).
+IMAGE docker.io/vbatts/slackware:15.0     sha256:93515a709cf6f12ca093f728b3716afad40b9ed92198feb439e939e6859e0df7
+IMAGE docker.io/vbatts/slackware:current  sha256:9dcaa22275e6a6cb25b9f6690885a321b44c326535ddf752b798dc206b82fd26

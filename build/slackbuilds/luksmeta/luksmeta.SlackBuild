@@ -1,0 +1,36 @@
+#!/bin/bash
+# luksmeta — stores metadata in LUKS1 headers; required by clevis for LUKS1
+# devices (LUKS2 stores the clevis JWE in a native token and does not use it).
+# v10 includes the fix for CVE-2025-11568 (LUKS1 data corruption).
+set -euo pipefail
+here="$(cd "$(dirname "$0")" && pwd)"
+. "$here/../common.sh"
+
+VERSION="${LUKSMETA_VERSION:-10}"
+PKG="$TMP/pkg-luksmeta"
+rm -rf "$PKG"; mkdir -p "$PKG"
+
+cau_extract luksmeta "$VERSION"
+
+# a2x (asciidoc) is intentionally absent -> man pages are skipped (configure warns only).
+./configure --prefix=/usr --libdir=/usr/lib64 --sysconfdir=/etc --disable-static
+make
+make install DESTDIR="$PKG"
+
+# Keep the pkgconfig file — clevis' build resolves dependency('luksmeta') via it to
+# enable the LUKS commands. Only man pages are dropped.
+rm -rf "$PKG/usr/include" "$PKG/usr/man" "$PKG/usr/share/man"
+
+cau_slackdesc "$PKG" luksmeta \
+  "luksmeta (LUKS1 metadata, bundled for clevis-auto-unlock)" \
+  "" \
+  "luksmeta is a simple library and CLI for storing metadata in the" \
+  "unused slots of a LUKS1 header. clevis needs it to bind/unlock" \
+  "LUKS1 devices; LUKS2 devices use native tokens instead." \
+  "" \
+  "This is v10, which fixes CVE-2025-11568 (LUKS1 data corruption)." \
+  "" \
+  "Upstream: https://github.com/latchset/luksmeta" \
+  ""
+
+cau_makepkg "$PKG" luksmeta "$VERSION" x86_64

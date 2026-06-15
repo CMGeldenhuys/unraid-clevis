@@ -1,0 +1,41 @@
+#!/bin/bash
+# jose — C-language JOSE (JWS/JWE/JWK) implementation from latchset.
+# Built with jansson statically linked so the shipped libjose has no external
+# libjansson dependency (Unraid is not assumed to ship jansson, and we do not
+# mutate any system library it may have).
+set -euo pipefail
+here="$(cd "$(dirname "$0")" && pwd)"
+. "$here/../common.sh"
+
+VERSION="${JOSE_VERSION:-15}"
+PKG="$TMP/pkg-jose"
+rm -rf "$PKG"; mkdir -p "$PKG"
+
+cau_extract jose "$VERSION"
+
+# jansson is built static+PIC into /usr by the Dockerfile before this runs, so
+# meson's dependency('jansson') resolves to the static archive and is absorbed.
+meson setup build \
+  --prefix=/usr --libdir=lib64 --buildtype=release \
+  -Ddocs=disabled
+ninja -C build
+DESTDIR="$PKG" ninja -C build install
+
+# Keep libjose, the jose CLI, headers and pkgconfig — clevis' compiled sss pin
+# links libjose and #includes <jose/*.h>, resolved via pkg-config. Only man pages
+# are dropped. (Headers/pkgconfig are a few KB.)
+rm -rf "$PKG/usr/man" "$PKG/usr/share/man"
+
+cau_slackdesc "$PKG" jose \
+  "jose (JOSE implementation, bundled for clevis-auto-unlock)" \
+  "" \
+  "jose is a C-language implementation of the IETF JOSE standards" \
+  "(JWS, JWE, JWK). clevis uses the jose CLI and libjose to perform" \
+  "the McCallum-Relyea exchange with a tang server." \
+  "" \
+  "jansson is statically linked; the only external runtime deps are" \
+  "libcrypto, libz and libc — all present on Unraid." \
+  "" \
+  "Upstream: https://github.com/latchset/jose"
+
+cau_makepkg "$PKG" jose "$VERSION" x86_64

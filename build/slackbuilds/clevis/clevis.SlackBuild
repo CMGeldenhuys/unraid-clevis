@@ -1,0 +1,43 @@
+#!/bin/bash
+# clevis — pluggable framework for automated decryption. We ship the tang + luks +
+# sss pins (no tpm). The sss pin has a compiled C component that links libjose, so
+# this package is arch-specific and built per Unraid ABI variant. Requires jose
+# (headers + lib) installed at build time.
+set -euo pipefail
+here="$(cd "$(dirname "$0")" && pwd)"
+. "$here/../common.sh"
+
+VERSION="${CLEVIS_VERSION:-23}"
+PKG="$TMP/pkg-clevis"
+rm -rf "$PKG"; mkdir -p "$PKG"
+
+cau_extract clevis "$VERSION"
+
+# tpm1 disabled; tpm2/pkcs11 pins are runtime-detected and simply stay inert
+# without their helper tools. a2x absent -> man pages skipped.
+meson setup build \
+  --prefix=/usr --libdir=lib64 --buildtype=release \
+  -Dtpm1=disabled
+ninja -C build
+DESTDIR="$PKG" ninja -C build install
+
+# We do not use clevis' systemd units, dracut/initramfs hooks, or udev rules on
+# Unraid (we drive unlock from the plugin's event hook), so drop them.
+rm -rf "$PKG/usr/lib64/dracut" "$PKG/usr/lib/dracut" \
+       "$PKG/lib/systemd" "$PKG/usr/lib/systemd" "$PKG/usr/lib64/systemd" \
+       "$PKG/usr/lib/udev" "$PKG/usr/lib64/udev" \
+       "$PKG/usr/man" "$PKG/usr/share/man"
+
+cau_slackdesc "$PKG" clevis \
+  "clevis (NBDE client, bundled for clevis-auto-unlock)" \
+  "" \
+  "clevis is a pluggable framework for automated decryption. This" \
+  "build provides the tang and luks pins used to unlock an Unraid" \
+  "LUKS array from a remote tang server (no key stored on the host)." \
+  "" \
+  "Pure shell (noarch). Runtime deps: jose, jq, cryptsetup, curl," \
+  "luksmeta (LUKS1 only) — all present on Unraid or bundled here." \
+  "" \
+  "Upstream: https://github.com/latchset/clevis"
+
+cau_makepkg "$PKG" clevis "$VERSION" x86_64
