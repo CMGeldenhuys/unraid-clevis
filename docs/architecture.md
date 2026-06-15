@@ -7,7 +7,7 @@ src/clevis.auto.unlock/
   install/                 doinst.sh / douninst.sh / slack-desc   (Slackware package hooks)
   usr/local/emhttp/plugins/clevis.auto.unlock/
     ClevisAutoUnlock.page  webGUI settings + dashboard (Settings menu)
-    include/*.php          backend endpoints (CSRF-checked, run scripts as root)
+    include/*.php          backend endpoints (POST-guarded; CSRF enforced by Unraid's gate; run scripts as root)
     scripts/*.sh           all logic (also unit-testable off-Unraid)
     event/{starting,started,stopping}/   Unraid array-lifecycle hooks
     pkgs/                  bundled jose/luksmeta/clevis .txz (added at package time)
@@ -29,10 +29,11 @@ The sealed passphrase is a tang-encrypted JWE at `.../secret.jwe`.
 | `health-check.sh` | tang reachable + pinned thumbprint still advertised; notify on change (cron) | lib-common |
 | `rotate.sh` | re-seal the passphrase to the current tang key | lib-common, clevis |
 | `go-hook.sh` | manage the optional early-boot snippet in `/boot/config/go` | lib-common |
-| `include/*.php` | thin, CSRF-checked HTTP layer that calls the scripts | helpers.php |
+| `include/*.php` | thin, POST-guarded HTTP layer that calls the scripts | helpers.php |
 
-The PHP layer never contains unlock logic — it validates input, enforces CSRF, and
-shells out to the scripts with an argv array (no shell) and the passphrase on stdin.
+The PHP layer never contains unlock logic — it validates input, requires POST (so Unraid's
+global CSRF gate has run), and shells out to the scripts with an argv array (no shell) and the
+passphrase on stdin. CSRF itself is enforced once, globally, by Unraid's auto_prepend.
 
 ## Boot unlock flow
 

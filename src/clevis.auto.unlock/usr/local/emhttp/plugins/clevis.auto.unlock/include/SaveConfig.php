@@ -2,7 +2,7 @@
 /* Save non-secret settings. POST: enabled, url, unlock_mode, network_timeout, csrf_token.
  * Preserves the pinned tang thumbprint (set during bind). */
 require __DIR__ . '/helpers.php';
-cau_require_csrf();
+cau_require_post();
 
 $cfgFile = '/boot/config/plugins/' . CAU_PLUGIN . '/config.json';
 $cfg = is_file($cfgFile) ? (json_decode((string)file_get_contents($cfgFile), true) ?: []) : [];

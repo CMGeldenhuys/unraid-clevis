@@ -13,6 +13,10 @@ The `<CHANGES>` block of the plugin `.plg` mirrors the released entries below.
   `application/x-www-form-urlencoded` (URLSearchParams) instead of `multipart/form-data`, which
   deadlocked Unraid's nginx `auth_request` gate — the auth subrequest blocked reading a body it
   never received, timing out before our endpoint ran.
+- webGUI POSTs no longer fail with a false "Invalid or missing CSRF token": Unraid's global
+  auto_prepend already validates the token on every POST and strips it before plugin code runs,
+  so the redundant per-endpoint check could never pass. Endpoints now rely on that gate and only
+  enforce POST (so the global CSRF check is guaranteed to have run).
 - webGUI backend can no longer hang a php-fpm worker: every script run via `cau_run` is wrapped in a
   hard `timeout` and its output captured via temp files, so a stuck child returns a clean error
   instead of pinning a worker (which previously exhausted the pool and 504'd the whole webGUI).

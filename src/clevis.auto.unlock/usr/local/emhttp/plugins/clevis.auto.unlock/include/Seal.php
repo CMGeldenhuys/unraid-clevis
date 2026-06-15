@@ -2,7 +2,7 @@
 /* Seal the array passphrase to tang. POST: url (optional), passphrase, csrf_token.
  * The passphrase travels to seal.sh on STDIN only. */
 require __DIR__ . '/helpers.php';
-cau_require_csrf();
+cau_require_post();
 
 $url  = (string)($_POST['url'] ?? '');
 $pass = (string)($_POST['passphrase'] ?? '');

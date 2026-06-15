@@ -2,7 +2,11 @@
 /* Shared helpers for the Clevis Auto-Unlock webGUI endpoints.
  *
  * Security:
- *  - every state-changing endpoint calls cau_require_csrf() (token from POST only).
+ *  - CSRF is enforced GLOBALLY by Unraid's auto_prepend (webGui/include/local_prepend.php):
+ *    on EVERY POST it validates csrf_token against var.ini, exit()s on missing/wrong, then
+ *    unset()s the token. Endpoints must therefore NOT re-check it — the token is already gone
+ *    by the time our code runs (a re-check always fails). We only require POST, which
+ *    guarantees that global check ran. Do NOT re-add a per-endpoint CSRF check.
  *  - external commands run via proc_open() with an ARGV ARRAY (never a shell
  *    string), so inputs cannot be used for command injection.
  *  - the passphrase is passed to seal.sh on STDIN only — never in argv, never logged.
@@ -22,23 +26,19 @@ const CAU_SCRIPTS = '/usr/local/emhttp/plugins/clevis.auto.unlock/scripts';
 /* Full PATH for spawned scripts; php-fpm runs clear_env=yes so we must set it. */
 const CAU_PATH    = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
 
-/* Validate the Unraid CSRF token (from /var/local/emhttp/var.ini). POST only. */
-function cau_csrf_ok(): bool {
-    $var = @parse_ini_file('/var/local/emhttp/var.ini');
-    $token = $_POST['csrf_token'] ?? '';
-    return !empty($var['csrf_token'])
-        && is_string($token)
-        && hash_equals((string)$var['csrf_token'], $token);
-}
-
-function cau_require_csrf(): void {
-    if (!cau_csrf_ok()) {
-        http_response_code(403);
-        cau_json(['ok' => false, 'error' => 'Invalid or missing CSRF token']);
+/* Require POST for mutating/sensitive actions. CSRF itself is already enforced by Unraid's
+ * global auto_prepend on every POST (see header) — requiring POST guarantees that ran and
+ * blocks a GET that would otherwise skip the global CSRF gate. */
+function cau_require_post(): void {
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+        http_response_code(405);
+        cau_json(['ok' => false, 'error' => 'POST required']);
     }
 }
 
-/* Emit exactly one JSON object and stop, discarding any buffered notice output. */
+/* Emit exactly one JSON object and stop, discarding any buffered notice output.
+ * ALWAYS terminates the request (exit) — callers (e.g. cau_require_post) rely on this to
+ * abort the request after an error response, so this exit must stay. */
 function cau_json($data): void {
     if (ob_get_level() > 0) { ob_clean(); }
     header('Content-Type: application/json');
@@ -74,7 +74,10 @@ function cau_run(array $argv, ?string $stdin = null, int $timeout = 45): array {
     return [$rc, $out, $err];
 }
 
-/* Run a script that emits a JSON object on stdout and relay it (validated). */
+/* Run a script that emits a JSON object on stdout and relay it (validated). On the fallback
+ * path (non-JSON output) the script's STDERR is surfaced verbatim to the client — so scripts
+ * MUST keep secrets (passphrases, key material) out of stderr (the passphrase tools already
+ * suppress stderr with 2>/dev/null). */
 function cau_run_json(array $argv, ?string $stdin = null): void {
     [$rc, $out, $err] = cau_run($argv, $stdin);
     $decoded = json_decode(trim($out), true);

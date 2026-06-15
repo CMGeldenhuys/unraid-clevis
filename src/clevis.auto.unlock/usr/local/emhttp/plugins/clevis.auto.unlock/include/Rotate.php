@@ -2,7 +2,7 @@
 /* Re-pin to the tang server's current key and regenerate bindings.
  * POST: url (optional), csrf_token. */
 require __DIR__ . '/helpers.php';
-cau_require_csrf();
+cau_require_post();
 
 $url = (string)($_POST['url'] ?? '');
 if ($url !== '' && !cau_valid_url($url)) cau_json(['ok' => false, 'error' => 'Invalid tang URL']);
