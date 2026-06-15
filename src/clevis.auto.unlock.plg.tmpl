@@ -1,0 +1,74 @@
+<?xml version='1.0' standalone='yes'?>
+<!DOCTYPE PLUGIN [
+<!ENTITY name       "clevis.auto.unlock">
+<!ENTITY author     "CMGeldenhuys">
+<!ENTITY version    "--pkg-version--">
+<!ENTITY launch     "Settings/ClevisAutoUnlock">
+<!ENTITY icon       "unlock-alt">
+<!ENTITY gitURL     "--git-url--">
+<!ENTITY pluginURL  "https://github.com/CMGeldenhuys/unraid-clevis/releases/latest/download/&name;.plg">
+<!ENTITY supportURL "https://github.com/CMGeldenhuys/unraid-clevis">
+<!ENTITY pkg        "--pkg-name--">
+<!ENTITY pkgSHA256  "--pkg-sha256--">
+<!ENTITY pkgMD5     "--pkg-md5--">
+<!ENTITY pluginDIR  "/boot/config/plugins/&name;">
+<!ENTITY emhttp     "/usr/local/emhttp/plugins/&name;">
+]>
+<PLUGIN name="&name;"
+        author="&author;"
+        version="&version;"
+        launch="&launch;"
+        pluginURL="&pluginURL;"
+        support="&supportURL;"
+        icon="&icon;"
+        min="6.12.0">
+
+<CHANGES>
+###&version;
+- Initial release: auto-unlock the encrypted array/pools via clevis + a remote tang server
+- Event-hook unlock (no cryptsetup shim); recovered key kept in RAM and shredded after start
+- webGUI for bind / unbind / dry-run test-unlock / tang health / key rotation
+- Bundles jose 15, luksmeta 10, clevis 23 (built from pinned source)
+- Releases signed with cosign (keyless) + SLSA provenance; SHA-256 verified
+</CHANGES>
+
+<!-- Download + install the plugin package (bundles clevis/jose/luksmeta).
+     Integrity is checked by the plugin manager via the hashes below; release
+     artifacts are additionally cosign-signed with SLSA provenance (see
+     docs/verifying-releases.md). -->
+<FILE Name="&pluginDIR;/&pkg;" Run="/sbin/upgradepkg --install-new --reinstall">
+  <URL>&gitURL;/&pkg;</URL>
+  <SHA256>&pkgSHA256;</SHA256>
+  <MD5>&pkgMD5;</MD5>
+</FILE>
+
+<!-- Friendly post-install note. Setup is done from the webGUI — no terminal needed. -->
+<FILE Run="/bin/bash">
+<INLINE>
+echo "+=============================================================================="
+echo "  Clevis Auto-Unlock &version; installed."
+echo ""
+echo "  Configure it from the webGUI:  Settings -> Clevis Auto-Unlock"
+echo "  There you can point it at your tang server and bind your encrypted disks."
+echo ""
+echo "  A reachable tang server (NOT on this Unraid box) is required, and the array"
+echo "  must be set to start automatically for hands-free unlock at boot."
+echo ""
+echo "  Docs: &supportURL;"
+echo "+=============================================================================="
+</INLINE>
+</FILE>
+
+<!-- Uninstall: remove bundled tools + plugin files. Disk bindings are left intact. -->
+<FILE Run="/bin/bash" Method="remove">
+<INLINE>
+[ -x "&emhttp;/install/douninst.sh" ] &amp;&amp; bash "&emhttp;/install/douninst.sh"
+/sbin/removepkg "&pluginDIR;/&pkg;" 2>/dev/null
+rm -rf "&emhttp;"
+rm -rf "&pluginDIR;"
+echo "clevis.auto.unlock uninstalled. Your disks remain bound to tang; your recovery"
+echo "passphrase still unlocks them. Use 'clevis luks unbind' manually to remove binds."
+</INLINE>
+</FILE>
+
+</PLUGIN>

@@ -1,0 +1,17 @@
+# HOWTO EDIT THIS FILE:
+# The "handy ruler" below makes it easier to edit a package description.
+# Line up the first '|' above the ':' following the base package name, and
+# the '|' on the right side marks the last column you can put a character in.
+
+       |-----handy-ruler------------------------------------------------------|
+clevis.auto.unlock: clevis.auto.unlock (auto-unlock LUKS via clevis + tang)
+clevis.auto.unlock:
+clevis.auto.unlock: Automatically unlocks the encrypted Unraid array and pools at
+clevis.auto.unlock: boot using clevis bound to a remote tang server, with no
+clevis.auto.unlock: encryption key stored on the server. Setup and management are
+clevis.auto.unlock: done entirely from the webGUI.
+clevis.auto.unlock:
+clevis.auto.unlock: Bundles jose, luksmeta and clevis (latchset, GPL-3.0).
+clevis.auto.unlock:
+clevis.auto.unlock: Homepage: https://github.com/CMGeldenhuys/unraid-clevis
+clevis.auto.unlock:
