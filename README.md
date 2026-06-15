@@ -30,7 +30,7 @@ deliberately different, hardened design:
 | Setup | Manual `sudo setup.sh` in a terminal | Server-side from the webGUI |
 | Artifact integrity | MD5 | SHA-256 + cosign keyless signature + SLSA provenance |
 | Base image | Community/stale | `vbatts/slackware` (pinned by digest) |
-| Recovery | Manual | Enforced recovery-passphrase check before binding |
+| Recovery | Manual | Passphrase verified to open every device before sealing; never removed |
 | Key thumbprint | Trust-on-first-use | Pinned `thp`, alerted on change |
 
 ## Security model (short version)

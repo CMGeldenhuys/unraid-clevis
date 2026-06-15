@@ -25,19 +25,20 @@ design assumes:
 - **Running-system attacker (root):** out of scope — a compromised running root can already read
   mounted data. The plugin minimises exposure by keeping the recovered passphrase in RAM only and
   shredding it immediately after the array mounts.
-- **Tang loss / DR:** a verified recovery passphrase is required before binding and is never
-  removed, so the array can always be unlocked manually. See [`docs/recovery.md`](docs/recovery.md).
+- **Tang loss / DR:** the plugin never modifies a LUKS header — it seals a copy of your
+  passphrase as a tang-encrypted JWE. Your passphrase is verified to open every device
+  before sealing and always remains your manual recovery key. See [`docs/recovery.md`](docs/recovery.md).
 
 ## Handling of secrets
 
 - The recovered passphrase lives only in `/root/keyfile` (tmpfs / RAM), mode `0600`, and is
   `shred -u`'d at the `started`/`stopping` events. It is never written to `/boot` or any persistent
   store, and never logged.
-- When binding from the webGUI, the user-supplied passphrase is passed to `clevis`/`cryptsetup`
-  via **stdin only** — never as a process argument (so it never appears in `ps`/logs) and never in
-  the audit log.
-- Configuration stored at `/boot/config/plugins/clevis.auto.unlock/config.json` contains only the
-  tang URL, pinned thumbprint, and non-secret options.
+- When sealing from the webGUI, the user-supplied passphrase is passed to `clevis`/`cryptsetup`
+  via **stdin only** — never as a process argument (so it never appears in `ps`/logs) and never logged.
+- `/boot/config/plugins/clevis.auto.unlock/config.json` holds only the tang URL, pinned thumbprint,
+  and non-secret options. `secret.jwe` is the passphrase encrypted to tang — not a plaintext secret;
+  it is recoverable only by contacting the tang server.
 
 ## Supply chain
 
