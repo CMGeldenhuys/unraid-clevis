@@ -1,0 +1,27 @@
+/* Clevis Auto-Unlock — minimal styling that sits well in the Unraid Dynamix theme. */
+.cau { max-width: 920px; }
+.cau-card { margin: 12px 0; padding: 10px 14px; }
+.cau-row { display: flex; align-items: center; gap: 12px; margin: 8px 0; }
+.cau-row label { flex: 0 0 200px; }
+.cau-row input[type="text"],
+.cau-row input[type="number"],
+.cau-row select { flex: 1 1 auto; min-width: 220px; }
+.cau-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0; }
+.cau-muted { opacity: 0.7; font-size: 0.9em; }
+
+.cau-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.cau-table th, .cau-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid rgba(128,128,128,0.25); }
+.cau-table td button { margin-right: 6px; }
+.cau-yes { color: #2e7d32; font-weight: 600; }
+.cau-no  { opacity: 0.6; }
+
+.cau-banner { padding: 10px 14px; margin: 10px 0; border-radius: 4px; border-left: 4px solid #888; background: rgba(128,128,128,0.12); }
+.cau-banner.cau-ok    { border-left-color: #2e7d32; }
+.cau-banner.cau-warn  { border-left-color: #f9a825; }
+.cau-banner.cau-alert { border-left-color: #c62828; }
+
+.cau-danger { color: #c62828; }
+
+.cau-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+.cau-modal-box { background: var(--background, #2b2b2b); color: inherit; padding: 20px 24px; border-radius: 6px; width: min(440px, 90vw); box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
+.cau-modal-box input[type="password"] { width: 100%; margin: 8px 0; padding: 8px; box-sizing: border-box; }

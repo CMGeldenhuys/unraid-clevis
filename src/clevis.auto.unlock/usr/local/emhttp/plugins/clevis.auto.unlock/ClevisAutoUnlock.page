@@ -1,0 +1,91 @@
+Menu="Settings"
+Title="Clevis Auto-Unlock"
+Icon="unlock-alt"
+Tag="unlock-alt"
+---
+<?php
+/* Clevis Auto-Unlock — settings + management. Backend endpoints in include/*.php
+ * run the scripts as root. The array passphrase is sealed to tang as an encrypted
+ * JWE; no LUKS header is modified. */
+$plugin = 'clevis.auto.unlock';
+$base   = "/plugins/$plugin/include";
+$csrf   = $var['csrf_token'] ?? '';
+?>
+
+<link rel="stylesheet" href="/plugins/clevis.auto.unlock/assets/clevis.css">
+<script>window.CAU = { base: "<?=$base?>", csrf: "<?=$csrf?>" };</script>
+
+<div id="cau-app" class="cau">
+  <div id="cau-https-warning" class="cau-banner cau-warn" style="display:none">
+    The webGUI is being served over HTTP. Your passphrase would cross the network
+    unencrypted when sealing. Enable SSL/TLS (Settings &rarr; Management Access) or
+    seal from the server console instead.
+  </div>
+
+  <div id="cau-status" class="cau-banner" style="display:none"></div>
+  <div id="cau-health" class="cau-banner" style="display:none"></div>
+
+  <fieldset class="cau-card">
+    <legend>Settings</legend>
+    <div class="cau-row">
+      <label for="cau-url">Tang server URL</label>
+      <input type="text" id="cau-url" placeholder="http://tang.example.lan:7500" spellcheck="false">
+    </div>
+    <div class="cau-row">
+      <label for="cau-enabled">Auto-unlock at boot</label>
+      <select id="cau-enabled"><option value="true">Enabled</option><option value="false">Disabled</option></select>
+    </div>
+    <div class="cau-row">
+      <label for="cau-mode">Unlock mode</label>
+      <select id="cau-mode">
+        <option value="event">Event hook (recommended)</option>
+        <option value="go">Early boot (go script)</option>
+      </select>
+    </div>
+    <div class="cau-row">
+      <label for="cau-timeout">Network wait (seconds)</label>
+      <input type="number" id="cau-timeout" min="5" max="600" value="60">
+    </div>
+    <div class="cau-actions">
+      <button type="button" id="cau-save">Save settings</button>
+      <span id="cau-pinned" class="cau-muted"></span>
+    </div>
+  </fieldset>
+
+  <fieldset class="cau-card">
+    <legend>Arm auto-unlock</legend>
+    <p class="cau-muted">
+      Enter your current array encryption passphrase. It is verified against every
+      encrypted device, then sealed to the tang server above (encrypted; recoverable
+      only by contacting tang). Your passphrase is never stored and remains your
+      manual recovery key.
+    </p>
+    <div class="cau-row">
+      <label for="cau-pass">Array passphrase</label>
+      <input type="password" id="cau-pass" autocomplete="off" placeholder="current LUKS passphrase">
+    </div>
+    <div class="cau-actions">
+      <button type="button" id="cau-seal">Seal passphrase</button>
+      <button type="button" id="cau-test" title="Decrypt from tang and verify it opens every device — no reboot">Test (dry run)</button>
+      <button type="button" id="cau-rotate" title="Re-seal to the tang server's current key">Rotate / re-pin</button>
+      <button type="button" id="cau-forget" class="cau-danger" title="Remove the sealed passphrase">Forget</button>
+    </div>
+  </fieldset>
+
+  <fieldset class="cau-card">
+    <legend>Encrypted devices</legend>
+    <div class="cau-actions"><button type="button" id="cau-refresh">Refresh</button></div>
+    <table class="cau-table" id="cau-devices">
+      <thead><tr><th>Disk</th><th>Device</th><th>Encrypted</th></tr></thead>
+      <tbody><tr><td colspan="3" class="cau-muted">Loading…</td></tr></tbody>
+    </table>
+  </fieldset>
+
+  <p class="cau-muted">
+    The tang server must be reachable before array start and must not run on this
+    Unraid box. The array must be set to start automatically for hands-free unlock.
+    See the project docs for recovery instructions.
+  </p>
+</div>
+
+<script src="/plugins/clevis.auto.unlock/assets/clevis.js"></script>
