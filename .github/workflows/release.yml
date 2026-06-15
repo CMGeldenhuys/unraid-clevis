@@ -41,8 +41,12 @@ jobs:
         working-directory: release
         run: sha256sum clevis.auto.unlock-*.txz clevis.auto.unlock.plg > SHA256SUMS
 
+      # SLSA provenance via GitHub's attestation API requires a public repo (for
+      # user-owned accounts). Don't fail the release when it's unavailable — cosign
+      # + SHA-256 still provide integrity; provenance starts working once public.
       - name: SLSA build provenance attestation
         uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        continue-on-error: true
         with:
           subject-path: |
             release/clevis.auto.unlock-*.txz
@@ -100,6 +104,6 @@ jobs:
             ### Verifying this release
             - SHA-256 checksums: `SHA256SUMS`
             - Cosign keyless signatures: `*.cosign.bundle` (verify with `cosign verify-blob`)
-            - SLSA build provenance: `gh attestation verify <file> --repo ${{ github.repository }}`
+            - SLSA build provenance (public repos only): `gh attestation verify <file> --repo ${{ github.repository }}`
 
             See `docs/verifying-releases.md` for full instructions.
