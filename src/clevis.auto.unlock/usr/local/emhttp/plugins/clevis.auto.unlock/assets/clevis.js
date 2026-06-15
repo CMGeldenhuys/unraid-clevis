@@ -16,11 +16,17 @@
       catch (e) { return { ok: false, error: "HTTP " + r.status + ": " + String(t || r.statusText).slice(0, 300) }; }
     });
   }
+  /* POST as application/x-www-form-urlencoded (URLSearchParams), NOT multipart/FormData.
+   * Unraid fronts every plugin endpoint with an nginx `auth_request` to /auth-request.php,
+   * and that auth subrequest HANGS on a multipart/form-data body — php-fpm blocks reading a
+   * body nginx never forwards to the subrequest, so the gate times out (≈60s) and EVERY POST
+   * 504s before our code runs. urlencoded is what the native webGUI sends and it passes the
+   * gate cleanly. Do NOT switch this back to FormData. (URLSearchParams shares .append().) */
   function post(endpoint, data) {
-    var fd = new FormData();
-    fd.append("csrf_token", CAU.csrf);
-    Object.keys(data || {}).forEach(function (k) { fd.append(k, data[k]); });
-    return fetch(CAU.base + "/" + endpoint, { method: "POST", body: fd, credentials: "same-origin" })
+    var body = new URLSearchParams();
+    body.append("csrf_token", CAU.csrf);
+    Object.keys(data || {}).forEach(function (k) { body.append(k, data[k]); });
+    return fetch(CAU.base + "/" + endpoint, { method: "POST", body: body, credentials: "same-origin" })
       .then(parseJson).catch(function (e) { return { ok: false, error: "request failed: " + e }; });
   }
   function get(endpoint) {

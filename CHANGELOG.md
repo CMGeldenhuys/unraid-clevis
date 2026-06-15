@@ -9,6 +9,10 @@ The `<CHANGES>` block of the plugin `.plg` mirrors the released entries below.
 ## [Unreleased]
 
 ### Fixed
+- webGUI POSTs (Save/Seal/Test/Rotate/Forget) no longer hang ~60s then 504: the JS now sends
+  `application/x-www-form-urlencoded` (URLSearchParams) instead of `multipart/form-data`, which
+  deadlocked Unraid's nginx `auth_request` gate — the auth subrequest blocked reading a body it
+  never received, timing out before our endpoint ran.
 - webGUI backend can no longer hang a php-fpm worker: every script run via `cau_run` is wrapped in a
   hard `timeout` and its output captured via temp files, so a stuck child returns a clean error
   instead of pinning a worker (which previously exhausted the pool and 504'd the whole webGUI).
