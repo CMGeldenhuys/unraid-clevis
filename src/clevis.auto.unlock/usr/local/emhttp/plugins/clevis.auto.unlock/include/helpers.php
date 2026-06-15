@@ -52,18 +52,25 @@ function cau_valid_url(string $u): bool {
 }
 
 /* Run a script. $argv is an array (no shell). Optional $stdin (passphrase).
- * A known-good PATH is passed explicitly (defense-in-depth alongside lib-common.sh).
+ *  - wrapped in `timeout` so a stuck child can NEVER pin a php-fpm worker (a pinned
+ *    worker exhausts the pool and 504s the whole webGUI);
+ *  - output captured via temp files (not pipes) so a lingering descendant or a full
+ *    pipe buffer can't block us;
+ *  - a known-good PATH is passed explicitly (alongside lib-common.sh's export).
  * Returns [int $rc, string $stdout, string $stderr]. */
-function cau_run(array $argv, ?string $stdin = null): array {
-    $descr = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+function cau_run(array $argv, ?string $stdin = null, int $timeout = 45): array {
+    $cmd   = array_merge(['timeout', '-k', '5', (string)$timeout], $argv);
+    $outF  = tmpfile(); $errF = tmpfile();
+    $descr = [0 => ['pipe', 'r'], 1 => $outF, 2 => $errF];
     $env   = ['PATH' => CAU_PATH, 'HOME' => '/root'];
-    $proc  = proc_open($argv, $descr, $pipes, null, $env);
-    if (!is_resource($proc)) return [127, '', 'proc_open failed'];
+    $proc  = proc_open($cmd, $descr, $pipes, null, $env);
+    if (!is_resource($proc)) { fclose($outF); fclose($errF); return [127, '', 'proc_open failed']; }
     if ($stdin !== null) fwrite($pipes[0], $stdin);
     fclose($pipes[0]);
-    $out = stream_get_contents($pipes[1]); fclose($pipes[1]);
-    $err = stream_get_contents($pipes[2]); fclose($pipes[2]);
-    $rc  = proc_close($proc);
+    $rc = proc_close($proc);   // returns once `timeout` exits (≤ $timeout + 5s)
+    rewind($outF); $out = stream_get_contents($outF); fclose($outF);
+    rewind($errF); $err = stream_get_contents($errF); fclose($errF);
+    if ($rc === 124 || $rc === 137) $err = trim(($err ? "$err\n" : '') . "timed out after {$timeout}s");
     return [$rc, $out, $err];
 }
 

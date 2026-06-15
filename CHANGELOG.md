@@ -9,6 +9,9 @@ The `<CHANGES>` block of the plugin `.plg` mirrors the released entries below.
 ## [Unreleased]
 
 ### Fixed
+- webGUI backend can no longer hang a php-fpm worker: every script run via `cau_run` is wrapped in a
+  hard `timeout` and its output captured via temp files, so a stuck child returns a clean error
+  instead of pinning a worker (which previously exhausted the pool and 504'd the whole webGUI).
 - webGUI actions (Seal/Test/Save/Rotate/Forget) appeared inert: endpoints now emit strictly clean
   JSON (notices suppressed + output buffer cleaned) and the JS never fails silently (defensive parse
   + `.catch`), with a non-blocking busy state and a result dialog for every action.
