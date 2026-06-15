@@ -115,9 +115,13 @@ cau_tang_thps() {
 cau_tang_thp() { cau_tang_thps "$1" | head -1; }
 
 # Is <thp> among the thumbprints currently advertised by <url>?
+# NB: `jose jwk thp` does NOT terminate its output with a newline, so the final
+# (often only) thumbprint line is unterminated and `while read` returns non-zero on
+# it — which would skip the comparison and falsely report "thp-changed". The
+# `|| [ -n "$t" ]` clause processes that last newline-less line. Do not remove it.
 cau_thp_advertised() {
   local thp="$1" url="$2" t
-  while read -r t; do [ "$t" = "$thp" ] && return 0; done < <(cau_tang_thps "$url" 2>/dev/null)
+  while read -r t || [ -n "$t" ]; do [ "$t" = "$thp" ] && return 0; done < <(cau_tang_thps "$url" 2>/dev/null)
   return 1
 }
 

@@ -9,6 +9,10 @@ The `<CHANGES>` block of the plugin `.plg` mirrors the released entries below.
 ## [Unreleased]
 
 ### Fixed
+- Tang health check no longer falsely flips to "key changed — re-pin" right after sealing/rotating:
+  `jose jwk thp` emits no trailing newline, so the `while read` membership loop in
+  `cau_thp_advertised` skipped the final (often only) thumbprint and reported `thp-changed`. The
+  loop now compares that unterminated last line, so a healthy pinned key reads as `ok`.
 - webGUI POSTs (Save/Seal/Test/Rotate/Forget) no longer hang ~60s then 504: the JS now sends
   `application/x-www-form-urlencoded` (URLSearchParams) instead of `multipart/form-data`, which
   deadlocked Unraid's nginx `auth_request` gate — the auth subrequest blocked reading a body it
