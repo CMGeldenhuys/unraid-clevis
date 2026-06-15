@@ -1,0 +1,33 @@
+name: verify-deps
+
+# Supply-chain drift alarm: weekly (and on demand) re-download every pinned source
+# and confirm it still matches the SHA-256 in deps.lock. A mismatch means an
+# upstream artifact changed under us (possible takeover) — open an issue.
+on:
+  schedule:
+    - cron: "17 6 * * 1"   # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write   # to open a drift issue on failure
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Re-verify pinned sources + base-image digests against upstream
+        run: bash build/verify-deps.sh --remote
+
+      - name: Open an issue on drift
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --title "Supply-chain drift: a pinned source no longer matches deps.lock" \
+            --body "The scheduled verify-deps run failed. A pinned upstream artifact's SHA-256 changed. Investigate before the next release: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --label security || true

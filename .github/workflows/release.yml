@@ -1,0 +1,91 @@
+name: release
+
+# On a semver tag: build, then publish a GitHub Release with the plugin .txz +
+# .plg, SHA-256 checksums, cosign keyless signatures, and SLSA build provenance.
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+  workflow_dispatch:
+    inputs:
+      tag: { description: "Release tag (vX.Y.Z)", required: true, type: string }
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/build.yml
+    with:
+      plugin_version: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      release_tag:    ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # create the release
+      id-token: write       # OIDC for cosign keyless + attestation
+      attestations: write   # SLSA build provenance
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: plugin-release
+          path: release
+
+      - name: Generate SHA-256 checksums
+        working-directory: release
+        run: sha256sum clevis.auto.unlock-*.txz clevis.auto.unlock.plg > SHA256SUMS
+
+      - name: SLSA build provenance attestation
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-path: |
+            release/clevis.auto.unlock-*.txz
+            release/clevis.auto.unlock.plg
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+
+      - name: Cosign keyless sign artifacts
+        working-directory: release
+        run: |
+          shopt -s nullglob
+          for f in clevis.auto.unlock-*.txz clevis.auto.unlock.plg; do
+            cosign sign-blob --yes "$f" --bundle "$f.cosign.bundle"
+          done
+
+      - name: Normalize tag
+        id: tag
+        run: |
+          tag='${{ github.event_name == ''workflow_dispatch'' && inputs.tag || github.ref_name }}'
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            release/clevis.auto.unlock.plg
+            release/clevis.auto.unlock-*.txz
+            release/SHA256SUMS
+            release/*.cosign.bundle
+          body: |
+            ## Clevis Auto-Unlock ${{ steps.tag.outputs.tag }}
+
+            Install via **Plugins → Install Plugin** in Unraid with:
+            ```
+            https://github.com/${{ github.repository }}/releases/latest/download/clevis.auto.unlock.plg
+            ```
+
+            ### Verifying this release
+            - SHA-256 checksums: `SHA256SUMS`
+            - Cosign keyless signatures: `*.cosign.bundle` (verify with `cosign verify-blob`)
+            - SLSA build provenance: `gh attestation verify <file> --repo ${{ github.repository }}`
+
+            See `docs/verifying-releases.md` for full instructions.

@@ -1,0 +1,41 @@
+name: lint
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: ShellCheck
+        run: |
+          shellcheck --version
+          shellcheck -x -S warning \
+            src/clevis.auto.unlock/usr/local/emhttp/plugins/clevis.auto.unlock/scripts/*.sh \
+            src/clevis.auto.unlock/usr/local/emhttp/plugins/clevis.auto.unlock/event/*/* \
+            src/clevis.auto.unlock/install/*.sh \
+            build/*.sh build/slackbuilds/*/*.SlackBuild
+
+      - name: PHP lint
+        run: |
+          docker run --rm -v "$PWD:/mnt:ro" -w /mnt php:8.3-cli \
+            bash -c 'for f in $(find src -name "*.php"); do php -l "$f" || exit 1; done'
+
+      - name: Dockerfile lint (hadolint)
+        run: docker run --rm -i hadolint/hadolint < Dockerfile || true
+
+      - name: Validate .plg template XML
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq libxml2-utils
+          # Substitute the placeholder tokens so the template parses as well-formed XML.
+          sed -e 's/--pkg-version--/0.0.0/g' -e 's/--pkg-name--/x.txz/g' \
+              -e 's/--pkg-sha256--/0/g' -e 's/--pkg-md5--/0/g' \
+              -e 's#--git-url--#https://example/#g' \
+              src/clevis.auto.unlock.plg.tmpl | xmllint --noout -

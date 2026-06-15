@@ -1,0 +1,60 @@
+name: build
+
+# Reusable build: fetch + verify pinned sources, build jose/luksmeta/clevis for
+# both Unraid ABIs, and package the plugin .txz + .plg. Also runnable manually.
+on:
+  workflow_call:
+    inputs:
+      plugin_version: { type: string, required: false, default: "0.0.0" }
+      release_tag:    { type: string, required: false, default: "" }
+    outputs:
+      version: { description: "Built plugin version", value: ${{ jobs.build.outputs.version }} }
+      pkg:     { description: "Built plugin package filename", value: ${{ jobs.build.outputs.pkg }} }
+  workflow_dispatch:
+    inputs:
+      plugin_version: { type: string, required: false, default: "0.0.0" }
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_BUILDKIT: "1"
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      pkg: ${{ steps.meta.outputs.pkg }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Fetch + verify pinned sources
+        run: make sources
+
+      - name: Build dependency packages (Unraid v6 + v7)
+        run: make deps
+
+      - name: Package plugin + render .plg
+        run: make plugin
+        env:
+          PLUGIN_VERSION: ${{ inputs.plugin_version }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - name: Collect metadata
+        id: meta
+        run: |
+          pkg=$(basename "$(ls release/clevis.auto.unlock-*.txz)")
+          version=$(sed -E 's/^clevis\.auto\.unlock-([^-]+)-.*/\1/' <<<"$pkg")
+          echo "pkg=$pkg" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "### Built $pkg" >> "$GITHUB_STEP_SUMMARY"
+          ls -l release/ >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: plugin-release
+          path: release/
+          if-no-files-found: error
+          retention-days: 7
