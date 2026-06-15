@@ -5,6 +5,8 @@
 #
 # Only active in the default 'event' unlock mode; in 'go' mode the key is staged
 # earlier from /boot/config/go and this hook is a no-op.
+# emhttpd runs event hooks with a minimal PATH; ensure jq (and the deriver) resolve.
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 PLUGIN_DIR=/usr/local/emhttp/plugins/clevis.auto.unlock
 mode="$(jq -r '.unlock_mode // "event"' /boot/config/plugins/clevis.auto.unlock/config.json 2>/dev/null)"
 [ "$mode" = "go" ] && exit 0

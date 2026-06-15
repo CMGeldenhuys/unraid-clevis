@@ -10,6 +10,12 @@
 #
 # All paths/timeouts are overridable via the environment for off-Unraid testing.
 
+# Ensure a complete PATH regardless of caller. php-fpm runs clear_env=yes, and the
+# emhttpd event hooks and dcron all use a minimal PATH — so bare-name clevis/jose/
+# cryptsetup/jq/curl (and clevis' own sub-pin lookup) can fail to resolve. This one
+# export, in the file every script sources, covers the webGUI, boot-hook and cron contexts.
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 : "${PLUGIN:=clevis.auto.unlock}"
 : "${EMHTTP_DIR:=/usr/local/emhttp/plugins/$PLUGIN}"
 : "${CONFIG_DIR:=/boot/config/plugins/$PLUGIN}"

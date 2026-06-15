@@ -20,8 +20,9 @@ for pkg in clevis luksmeta jose; do
   fi
 done
 
-# Remove cron + early-boot go hook.
-rm -f /etc/cron.d/"$PLUGIN" 2>/dev/null || true
+# Remove the health-check cron (the flash .cron that update_cron concatenates), then
+# rebuild the crontab. Also drop any stale /etc/cron.d file from older versions.
+rm -f /boot/config/plugins/"$PLUGIN"/*.cron /etc/cron.d/"$PLUGIN" 2>/dev/null || true
 [ -x /usr/local/sbin/update_cron ] && /usr/local/sbin/update_cron >/dev/null 2>&1 || true
 if [ -f /boot/config/go ] && grep -qF ">>> clevis.auto.unlock" /boot/config/go; then
   tmp="$(mktemp)"

@@ -73,13 +73,14 @@ if [ ! -f "$CONFIG_DIR/config.json" ] && [ -f "$EMHTTP_DIR/default.cfg" ]; then
   install -m 0644 "$EMHTTP_DIR/default.cfg" "$CONFIG_DIR/config.json"
 fi
 
-# --- health-check cron (best-effort; refreshed each boot) --------------------
-if [ -d /etc/cron.d ]; then
-  printf '%s\n' \
-    "# Clevis Auto-Unlock — tang reachability / key-thumbprint monitor" \
-    "*/15 * * * * root $EMHTTP_DIR/scripts/health-check.sh >/dev/null 2>&1" \
-    > /etc/cron.d/"$PLUGIN" 2>/dev/null || true
-fi
+# --- health-check cron ------------------------------------------------------
+# Unraid's update_cron concatenates /boot/config/plugins/*/*.cron into root's
+# crontab (dcron user-crontab format: NO username field). /etc/cron.d is ignored.
+printf '%s\n' \
+  "# Clevis Auto-Unlock — tang reachability / key-thumbprint monitor" \
+  "*/15 * * * * $EMHTTP_DIR/scripts/health-check.sh >/dev/null 2>&1" \
+  > "$CONFIG_DIR/health-check.cron" 2>/dev/null || true
+rm -f /etc/cron.d/"$PLUGIN" 2>/dev/null || true   # drop stale file from older versions
 if [ -x /usr/local/sbin/update_cron ]; then timeout 30 /usr/local/sbin/update_cron </dev/null >/dev/null 2>&1 || true; fi
 log "cron registered"
 
