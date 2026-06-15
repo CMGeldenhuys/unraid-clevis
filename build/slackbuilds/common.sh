@@ -47,6 +47,10 @@ cau_makepkg() {
   # Strip binaries/libs (keep it small); ignore failures on non-ELF.
   find "$pkgdir" -type f \( -name '*.so*' -o -perm -u+x \) \
     -exec sh -c 'file "$1" 2>/dev/null | grep -q ELF && strip --strip-unneeded "$1" 2>/dev/null || true' _ {} \; || true
-  ( cd "$pkgdir" && /sbin/makepkg -l y -c n \
+  # -l n: keep .so symlinks IN the package (do NOT move them into a generated
+  # doinst.sh). These deps are installed from WITHIN the plugin's doinst, and
+  # Unraid's installpkg holds an flock while running a doinst — so a dependency
+  # that also has a doinst would deadlock the nested install. No doinst => no lock.
+  ( cd "$pkgdir" && /sbin/makepkg -l n -c n \
       "$OUTPUT/${pkgname}-${version}-${pkgarch}-${BUILD}${CAU_TAG}${suffix}.txz" )
 }
