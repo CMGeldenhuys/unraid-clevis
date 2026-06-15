@@ -5,14 +5,27 @@ name: build
 on:
   workflow_call:
     inputs:
-      plugin_version: { type: string, required: false, default: "0.0.0" }
-      release_tag:    { type: string, required: false, default: "" }
+      plugin_version:
+        type: string
+        required: false
+        default: "0.0.0"
+      release_tag:
+        type: string
+        required: false
+        default: ""
     outputs:
-      version: { description: "Built plugin version", value: ${{ jobs.build.outputs.version }} }
-      pkg:     { description: "Built plugin package filename", value: ${{ jobs.build.outputs.pkg }} }
+      version:
+        description: "Built plugin version"
+        value: ${{ jobs.build.outputs.version }}
+      pkg:
+        description: "Built plugin package filename"
+        value: ${{ jobs.build.outputs.pkg }}
   workflow_dispatch:
     inputs:
-      plugin_version: { type: string, required: false, default: "0.0.0" }
+      plugin_version:
+        type: string
+        required: false
+        default: "0.0.0"
 
 permissions:
   contents: read

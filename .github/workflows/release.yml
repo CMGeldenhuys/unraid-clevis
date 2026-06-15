@@ -62,7 +62,7 @@ jobs:
       - name: Normalize tag
         id: tag
         run: |
-          tag='${{ github.event_name == ''workflow_dispatch'' && inputs.tag || github.ref_name }}'
+          tag='${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}'
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           # A hyphen in the tag (e.g. v0.1.0-alpha.1) marks a pre-release. GitHub's
           # /latest skips pre-releases, so install from the tag-specific URL.
@@ -89,9 +89,9 @@ jobs:
             release/*.cosign.bundle
           body: |
             ## Clevis Auto-Unlock ${{ steps.tag.outputs.tag }}
-            ${{ steps.tag.outputs.prerelease == 'true' && '
-            > **Alpha / pre-release** — not yet validated on real Unraid hardware. Test on a non-critical system and keep your recovery passphrase.
-            ' || '' }}
+
+            ${{ steps.tag.outputs.prerelease == 'true' && '> **Alpha / pre-release** — not yet validated on real Unraid hardware. Test on a non-critical system and keep your recovery passphrase.' || '' }}
+
             Install via **Plugins → Install Plugin** in Unraid with:
             ```
             ${{ steps.tag.outputs.install_url }}
