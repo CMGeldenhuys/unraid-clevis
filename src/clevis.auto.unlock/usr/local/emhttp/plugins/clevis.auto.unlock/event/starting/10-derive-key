@@ -1,0 +1,11 @@
+#!/bin/bash
+# Unraid 'starting' event hook (runs at the start of array cmdStart, before the
+# native unlock reads /root/keyfile). Recovers the LUKS passphrase via clevis/tang
+# and stages it. The numeric prefix orders this early among any plugins' hooks.
+#
+# Only active in the default 'event' unlock mode; in 'go' mode the key is staged
+# earlier from /boot/config/go and this hook is a no-op.
+PLUGIN_DIR=/usr/local/emhttp/plugins/clevis.auto.unlock
+mode="$(jq -r '.unlock_mode // "event"' /boot/config/plugins/clevis.auto.unlock/config.json 2>/dev/null)"
+[ "$mode" = "go" ] && exit 0
+exec "$PLUGIN_DIR/scripts/derive-key.sh"

@@ -1,0 +1,4 @@
+#!/bin/bash
+# Unraid 'stopping' event hook — defensive wipe of /root/keyfile in case it was
+# ever left staged (e.g. an aborted start).
+exec /usr/local/emhttp/plugins/clevis.auto.unlock/scripts/wipe-key.sh

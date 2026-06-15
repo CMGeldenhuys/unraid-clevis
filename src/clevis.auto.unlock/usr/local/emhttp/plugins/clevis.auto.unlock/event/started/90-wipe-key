@@ -1,0 +1,4 @@
+#!/bin/bash
+# Unraid 'started' event hook — the array is mounted, so the staged passphrase is
+# no longer needed. Shred /root/keyfile.
+exec /usr/local/emhttp/plugins/clevis.auto.unlock/scripts/wipe-key.sh
