@@ -17,6 +17,10 @@ alert() { log "$1"; [ -x "$NOTIFY" ] && "$NOTIFY" -e "Clevis Auto-Unlock" -s "$2
 
 [ "$(id -u)" -eq 0 ] || { echo "must run as root" >&2; exit 99; }
 
+# Never read from stdin during install — installpkg may attach a pipe, and any
+# stdin-reading child (e.g. a clevis sub-tool) would hang the whole install.
+exec </dev/null
+
 # --- detect Unraid ABI variant ----------------------------------------------
 if   [ -f /lib64/libcrypto.so.1.1 ]; then variant=unraid-v6
 elif [ -f /lib64/libcrypto.so.3   ]; then variant=unraid-v7
@@ -62,11 +66,12 @@ if [ -d /etc/cron.d ]; then
     "*/15 * * * * root $EMHTTP_DIR/scripts/health-check.sh >/dev/null 2>&1" \
     > /etc/cron.d/"$PLUGIN" 2>/dev/null || true
 fi
-[ -x /usr/local/sbin/update_cron ] && /usr/local/sbin/update_cron >/dev/null 2>&1 || true
+if [ -x /usr/local/sbin/update_cron ]; then timeout 30 /usr/local/sbin/update_cron >/dev/null 2>&1 || true; fi
 
-# --- verify clevis actually runs against the bundled jose --------------------
-if ! clevis --help >/dev/null 2>&1; then
-  alert "clevis is installed but not runnable — check the bundled jose ABI for $variant." "Install warning" warning
-fi
+# --- sanity: confirm the expected binaries are present (do NOT execute them;
+#     `clevis ...` runs its sub-tools, some of which read stdin and would hang) ---
+for f in /usr/bin/clevis /usr/bin/jose /usr/bin/clevis-decrypt-tang; do
+  [ -x "$f" ] || alert "Expected $f is missing after install — the bundled $variant packages may be incompatible." "Install warning" warning
+done
 
 log "plugin installed successfully ($variant)"
