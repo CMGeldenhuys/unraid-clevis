@@ -8,7 +8,22 @@ The `<CHANGES>` block of the plugin `.plg` mirrors the released entries below.
 
 ## [Unreleased]
 
+### Fixed
+- webGUI actions (Seal/Test/Save/Rotate/Forget) appeared inert: endpoints now emit strictly clean
+  JSON (notices suppressed + output buffer cleaned) and the JS never fails silently (defensive parse
+  + `.catch`), with a non-blocking busy state and a result dialog for every action.
+- Bundled tools could be "not found" in the webGUI/boot/cron contexts: a complete `PATH` is now
+  exported in `lib-common.sh` (and passed to `proc_open`), and the array-start hook sets `PATH` for
+  its `jq` call.
+- Health-check cron never ran: it's now registered the Unraid way
+  (`/boot/config/plugins/<name>/*.cron` + `update_cron`, no username field) instead of `/etc/cron.d`.
+
 ### Added
+- Live tang server status in the webGUI (not configured / reachable / key-pinned / key-changed /
+  unreachable) with a Check button; reachability is shown before sealing.
+- Per-field inline help (Unraid Help-button toggle) and hover tooltips on every setting/action.
+
+### Added (initial)
 - Auto-unlock the encrypted Unraid array/pools at boot via clevis + a remote tang server,
   using the supported `event/starting` hook (no cryptsetup shim).
 - Seal the array passphrase as a tang-encrypted JWE (no LUKS header is modified); recover it

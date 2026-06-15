@@ -6,7 +6,10 @@ Tag="unlock-alt"
 <?php
 /* Clevis Auto-Unlock — settings + management. Backend endpoints in include/*.php
  * run the scripts as root. The array passphrase is sealed to tang as an encrypted
- * JWE; no LUKS header is modified. */
+ * JWE; no LUKS header is modified.
+ *
+ * Per-field help uses Unraid's native .inline_help blocks (toggled by the page's
+ * Help (?) button); title= attributes give the same hints on hover. */
 $plugin = 'clevis.auto.unlock';
 $base   = "/plugins/$plugin/include";
 $csrf   = $var['csrf_token'] ?? '';
@@ -27,27 +30,50 @@ $csrf   = $var['csrf_token'] ?? '';
 
   <fieldset class="cau-card">
     <legend>Settings</legend>
+
     <div class="cau-row">
-      <label for="cau-url">Tang server URL</label>
-      <input type="text" id="cau-url" placeholder="http://tang.example.lan:7500" spellcheck="false">
+      <label for="cau-url" title="Base URL of your tang server, e.g. http://tang.lan:7500. It must be reachable at boot and must NOT run on this Unraid box.">Tang server URL</label>
+      <input type="text" id="cau-url" spellcheck="false" placeholder="http://tang.example.lan:7500"
+             title="Base URL of your tang server, e.g. http://tang.lan:7500.">
+      <button type="button" id="cau-check" title="Check whether the tang server is reachable right now">Check</button>
     </div>
+    <div class="cau-row cau-row-status">
+      <label>&nbsp;</label><span id="cau-tang-status" class="cau-status cau-muted">tang: …</span>
+    </div>
+    <blockquote class="inline_help">The base URL of your <b>tang</b> server (e.g. <code>http://tang.example.lan:7500</code>).
+      It must be reachable from this server before the array starts, and must <b>not</b> run on this Unraid box
+      (that would be a chicken-and-egg at boot). The status line shows whether it's reachable and whether the
+      pinned signing key still matches.</blockquote>
+
     <div class="cau-row">
-      <label for="cau-enabled">Auto-unlock at boot</label>
+      <label for="cau-enabled" title="Master switch for boot-time auto-unlock.">Auto-unlock at boot</label>
       <select id="cau-enabled"><option value="true">Enabled</option><option value="false">Disabled</option></select>
     </div>
+    <blockquote class="inline_help">When enabled, the array passphrase is recovered from tang at boot and the
+      array unlocks unattended. Your array must also be set to <em>start automatically</em>
+      (Settings &rarr; Disk Settings). Disabling this keeps the seal but skips auto-unlock.</blockquote>
+
     <div class="cau-row">
-      <label for="cau-mode">Unlock mode</label>
+      <label for="cau-mode" title="How the key is staged at boot.">Unlock mode</label>
       <select id="cau-mode">
         <option value="event">Event hook (recommended)</option>
         <option value="go">Early boot (go script)</option>
       </select>
     </div>
+    <blockquote class="inline_help"><b>Event hook</b> (recommended) stages the key during Unraid's array-start
+      event. <b>Early boot (go script)</b> stages it from <code>/boot/config/go</code> before emhttpd starts —
+      use this only if event-hook mode doesn't unlock unattended on your build.</blockquote>
+
     <div class="cau-row">
-      <label for="cau-timeout">Network wait (seconds)</label>
-      <input type="number" id="cau-timeout" min="5" max="600" value="60">
+      <label for="cau-timeout" title="Seconds to wait for the tang server at boot before giving up.">Network wait (seconds)</label>
+      <input type="number" id="cau-timeout" min="5" max="600" value="60" title="Seconds to wait for tang at boot (5–600).">
     </div>
+    <blockquote class="inline_help">How long to wait at boot for the tang server to become reachable before
+      giving up and falling back to the manual passphrase prompt. The array start blocks for up to this long
+      if tang is slow/unavailable.</blockquote>
+
     <div class="cau-actions">
-      <button type="button" id="cau-save">Save settings</button>
+      <button type="button" id="cau-save" title="Save these settings">Save settings</button>
       <span id="cau-pinned" class="cau-muted"></span>
     </div>
   </fieldset>
@@ -61,20 +87,28 @@ $csrf   = $var['csrf_token'] ?? '';
       manual recovery key.
     </p>
     <div class="cau-row">
-      <label for="cau-pass">Array passphrase</label>
-      <input type="password" id="cau-pass" autocomplete="off" placeholder="current LUKS passphrase">
+      <label for="cau-pass" title="Your current LUKS/array passphrase — verified, then sealed to tang. Never stored.">Array passphrase</label>
+      <input type="password" id="cau-pass" autocomplete="off" placeholder="current LUKS passphrase"
+             title="Your current LUKS/array passphrase.">
     </div>
+    <blockquote class="inline_help">Your existing array encryption passphrase. It is checked against every
+      encrypted device, then encrypted to tang and saved as <code>secret.jwe</code> — the plaintext is never
+      stored and your passphrase stays valid as the manual recovery key.</blockquote>
+
     <div class="cau-actions">
-      <button type="button" id="cau-seal">Seal passphrase</button>
-      <button type="button" id="cau-test" title="Decrypt from tang and verify it opens every device — no reboot">Test (dry run)</button>
-      <button type="button" id="cau-rotate" title="Re-seal to the tang server's current key">Rotate / re-pin</button>
-      <button type="button" id="cau-forget" class="cau-danger" title="Remove the sealed passphrase">Forget</button>
+      <button type="button" id="cau-seal"   title="Verify the passphrase opens every device, then seal it to tang">Seal passphrase</button>
+      <button type="button" id="cau-test"   title="Decrypt from tang and confirm it opens every device — no reboot, no changes">Test (dry run)</button>
+      <button type="button" id="cau-rotate" title="Re-seal to the tang server's current signing key (after a tang key rotation)">Rotate / re-pin</button>
+      <button type="button" id="cau-forget" class="cau-danger" title="Remove the sealed passphrase and disable auto-unlock (disk encryption unchanged)">Forget</button>
     </div>
+    <blockquote class="inline_help"><b>Seal</b> arms auto-unlock. <b>Test (dry run)</b> proves it will work
+      without rebooting. <b>Rotate / re-pin</b> updates the stored seal after you rotate the tang server's keys.
+      <b>Forget</b> removes the seal (your disks and recovery passphrase are untouched).</blockquote>
   </fieldset>
 
   <fieldset class="cau-card">
     <legend>Encrypted devices</legend>
-    <div class="cau-actions"><button type="button" id="cau-refresh">Refresh</button></div>
+    <div class="cau-actions"><button type="button" id="cau-refresh" title="Re-scan devices and status">Refresh</button></div>
     <table class="cau-table" id="cau-devices">
       <thead><tr><th>Disk</th><th>Device</th><th>Encrypted</th></tr></thead>
       <tbody><tr><td colspan="3" class="cau-muted">Loading…</td></tr></tbody>

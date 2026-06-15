@@ -6,10 +6,21 @@
  *  - external commands run via proc_open() with an ARGV ARRAY (never a shell
  *    string), so inputs cannot be used for command injection.
  *  - the passphrase is passed to seal.sh on STDIN only — never in argv, never logged.
+ *
+ * Output discipline: these endpoints must return ONLY a JSON object. A stray PHP
+ * notice/warning printed before the JSON would make the browser's r.json() throw and
+ * the button look dead — so we suppress error output and clean the buffer before emit.
  */
+
+error_reporting(0);
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+ob_start();
 
 const CAU_PLUGIN  = 'clevis.auto.unlock';
 const CAU_SCRIPTS = '/usr/local/emhttp/plugins/clevis.auto.unlock/scripts';
+/* Full PATH for spawned scripts; php-fpm runs clear_env=yes so we must set it. */
+const CAU_PATH    = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
 
 /* Validate the Unraid CSRF token (from /var/local/emhttp/var.ini). POST only. */
 function cau_csrf_ok(): bool {
@@ -27,7 +38,9 @@ function cau_require_csrf(): void {
     }
 }
 
+/* Emit exactly one JSON object and stop, discarding any buffered notice output. */
 function cau_json($data): void {
+    if (ob_get_level() > 0) { ob_clean(); }
     header('Content-Type: application/json');
     echo is_string($data) ? $data : json_encode($data);
     exit;
@@ -39,10 +52,12 @@ function cau_valid_url(string $u): bool {
 }
 
 /* Run a script. $argv is an array (no shell). Optional $stdin (passphrase).
+ * A known-good PATH is passed explicitly (defense-in-depth alongside lib-common.sh).
  * Returns [int $rc, string $stdout, string $stderr]. */
 function cau_run(array $argv, ?string $stdin = null): array {
     $descr = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
-    $proc = proc_open($argv, $descr, $pipes);
+    $env   = ['PATH' => CAU_PATH, 'HOME' => '/root'];
+    $proc  = proc_open($argv, $descr, $pipes, null, $env);
     if (!is_resource($proc)) return [127, '', 'proc_open failed'];
     if ($stdin !== null) fwrite($pipes[0], $stdin);
     fclose($pipes[0]);
