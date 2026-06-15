@@ -4,10 +4,12 @@ name: release
 # .plg, SHA-256 checksums, cosign keyless signatures, and SLSA build provenance.
 on:
   push:
-    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"      # stable, e.g. v1.2.3
+      - "v[0-9]+.[0-9]+.[0-9]+-*"    # pre-release, e.g. v0.1.0-alpha.1
   workflow_dispatch:
     inputs:
-      tag: { description: "Release tag (vX.Y.Z)", required: true, type: string }
+      tag: { description: "Release tag (vX.Y.Z[-pre])", required: true, type: string }
 
 permissions:
   contents: read
@@ -62,6 +64,15 @@ jobs:
         run: |
           tag='${{ github.event_name == ''workflow_dispatch'' && inputs.tag || github.ref_name }}'
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          # A hyphen in the tag (e.g. v0.1.0-alpha.1) marks a pre-release. GitHub's
+          # /latest skips pre-releases, so install from the tag-specific URL.
+          if [[ "$tag" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "install_url=https://github.com/${{ github.repository }}/releases/download/$tag/clevis.auto.unlock.plg" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "install_url=https://github.com/${{ github.repository }}/releases/latest/download/clevis.auto.unlock.plg" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
@@ -70,6 +81,7 @@ jobs:
           name: ${{ steps.tag.outputs.tag }}
           generate_release_notes: true
           fail_on_unmatched_files: true
+          prerelease: ${{ steps.tag.outputs.prerelease }}
           files: |
             release/clevis.auto.unlock.plg
             release/clevis.auto.unlock-*.txz
@@ -77,10 +89,12 @@ jobs:
             release/*.cosign.bundle
           body: |
             ## Clevis Auto-Unlock ${{ steps.tag.outputs.tag }}
-
+            ${{ steps.tag.outputs.prerelease == 'true' && '
+            > **Alpha / pre-release** — not yet validated on real Unraid hardware. Test on a non-critical system and keep your recovery passphrase.
+            ' || '' }}
             Install via **Plugins → Install Plugin** in Unraid with:
             ```
-            https://github.com/${{ github.repository }}/releases/latest/download/clevis.auto.unlock.plg
+            ${{ steps.tag.outputs.install_url }}
             ```
 
             ### Verifying this release

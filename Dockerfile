@@ -53,8 +53,10 @@ ARG GITHUB_REPOSITORY=CMGeldenhuys/unraid-clevis
 ARG RELEASE_TAG=
 COPY src /src
 COPY pkgs /deps
+# Slackware package versions may not contain '-' (the field separator), so a semver
+# pre-release like v0.1.0-alpha.1 becomes package version 0.1.0_alpha.1.
 RUN set -e; \
-    ver="${PLUGIN_VERSION#v}"; \
+    ver="${PLUGIN_VERSION#v}"; ver="${ver//-/_}"; \
     payload=/src/clevis.auto.unlock; \
     pkgsdir="$payload/usr/local/emhttp/plugins/clevis.auto.unlock/pkgs"; \
     install -d "$pkgsdir"; \
