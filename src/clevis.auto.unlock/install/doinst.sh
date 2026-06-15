@@ -20,9 +20,10 @@ LOG_TAG="$PLUGIN.install"
 LOGFILE="$CONFIG_DIR/install.log"
 NOTIFY="/usr/local/emhttp/webGui/scripts/notify"
 
-# Never read from stdin during install (installpkg may attach a pipe; any
-# stdin-reading child would hang the whole install).
-exec </dev/null
+# NOTE: do NOT `exec </dev/null` here — installpkg runs NOLOCK scripts as
+# `sed ... doinst.sh | bash`, i.e. the script is fed to bash on STDIN, so
+# redirecting stdin would make bash read EOF and stop executing the script.
+# Instead, redirect stdin per-command on children that might read it.
 
 mkdir -p "$CONFIG_DIR" 2>/dev/null || true
 : > "$LOGFILE" 2>/dev/null || true
@@ -46,7 +47,7 @@ log "detected $variant"
 install_pkg() {
   local p="$1"
   log "installing dependency $(basename "$p")"
-  if ! timeout 180 /sbin/upgradepkg --install-new --reinstall "$p" >>"$LOGFILE" 2>&1; then
+  if ! timeout 180 /sbin/upgradepkg --install-new --reinstall "$p" </dev/null >>"$LOGFILE" 2>&1; then
     alert "Failed to install dependency $(basename "$p"). Aborting." "Install failed" warning
     exit 2
   fi
@@ -79,7 +80,7 @@ if [ -d /etc/cron.d ]; then
     "*/15 * * * * root $EMHTTP_DIR/scripts/health-check.sh >/dev/null 2>&1" \
     > /etc/cron.d/"$PLUGIN" 2>/dev/null || true
 fi
-if [ -x /usr/local/sbin/update_cron ]; then timeout 30 /usr/local/sbin/update_cron >/dev/null 2>&1 || true; fi
+if [ -x /usr/local/sbin/update_cron ]; then timeout 30 /usr/local/sbin/update_cron </dev/null >/dev/null 2>&1 || true; fi
 log "cron registered"
 
 # --- sanity: confirm the expected files exist (do NOT execute clevis here;
