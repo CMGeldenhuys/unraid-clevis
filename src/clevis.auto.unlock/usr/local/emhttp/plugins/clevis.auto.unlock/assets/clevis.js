@@ -53,13 +53,45 @@
   }
 
   /* --- rendering --- */
+  /* The pinned tang thumbprint is a PUBLIC key fingerprint (RFC 7638), not a secret — but a long
+   * opaque string labelled "key" reads as one. Show it truncated with an eye toggle to reveal the
+   * full value (useful to verify against `jose jwk thp` / `tang-show-keys`). */
+  function renderPinned(thp) {
+    var el = $("cau-pinned");
+    el.className = "cau-muted";
+    el.textContent = "";
+    if (!thp) { el.textContent = "no key pinned yet"; return; }
+    var SHOWN = 10;
+    var short = thp.length > SHOWN ? thp.slice(0, SHOWN) + "…" : thp;
+    el.appendChild(document.createTextNode("tang key fingerprint: "));
+    var val = document.createElement("span");
+    val.className = "cau-thp";
+    val.textContent = short;
+    el.appendChild(val);
+    var eye = document.createElement("i");
+    eye.className = "fa fa-eye cau-thp-toggle";
+    eye.title = "Show/hide the full fingerprint";
+    eye.setAttribute("role", "button");
+    eye.setAttribute("tabindex", "0");
+    var shown = false;
+    var toggle = function () {
+      shown = !shown;
+      val.textContent = shown ? thp : short;
+      eye.className = "fa " + (shown ? "fa-eye-slash" : "fa-eye") + " cau-thp-toggle";
+    };
+    eye.addEventListener("click", toggle);
+    eye.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") { e.preventDefault(); toggle(); }
+    });
+    el.appendChild(document.createTextNode(" "));
+    el.appendChild(eye);
+  }
   function renderConfig(c) {
     $("cau-url").value = (c.tang && c.tang.url) || "";
     $("cau-enabled").value = c.enabled ? "true" : "false";
     $("cau-mode").value = c.unlock_mode || "event";
     $("cau-timeout").value = c.network_timeout || 60;
-    var thp = (c.tang && c.tang.thp) || "";
-    $("cau-pinned").textContent = thp ? ("pinned key: " + thp) : "no key pinned yet";
+    renderPinned((c.tang && c.tang.thp) || "");
     banner($("cau-status"), c.sealed ? "ok" : "", c.sealed
       ? ("Passphrase is sealed to tang; auto-unlock is " + (c.enabled ? "ENABLED." : "configured but DISABLED."))
       : "No passphrase sealed yet — enter it below and click “Seal passphrase” to arm auto-unlock.");

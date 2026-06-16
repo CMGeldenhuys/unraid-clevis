@@ -41,6 +41,11 @@ button.cau-busy::after {
 
 .cau-danger { color: #c62828; }
 
+/* pinned tang thumbprint: a public fingerprint, shown truncated with an eye toggle to reveal */
+.cau-thp { font-family: monospace; }
+.cau-thp-toggle { margin-left: 6px; cursor: pointer; opacity: 0.8; }
+.cau-thp-toggle:hover { opacity: 1; }
+
 .cau-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; }
 .cau-modal-box { background: var(--background, #2b2b2b); color: inherit; padding: 20px 24px; border-radius: 6px; width: min(440px, 90vw); box-shadow: 0 8px 30px rgba(0,0,0,0.4); }
 .cau-modal-box input[type="password"] { width: 100%; margin: 8px 0; padding: 8px; box-sizing: border-box; }

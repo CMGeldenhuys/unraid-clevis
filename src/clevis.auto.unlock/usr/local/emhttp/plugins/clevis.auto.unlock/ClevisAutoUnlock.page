@@ -74,7 +74,8 @@ $csrf   = $var['csrf_token'] ?? '';
 
     <div class="cau-actions">
       <button type="button" id="cau-save" title="Save these settings">Save settings</button>
-      <span id="cau-pinned" class="cau-muted"></span>
+      <span id="cau-pinned" class="cau-muted"
+            title="Public fingerprint (thumbprint) of your tang server's signing key — not a secret. Used to detect if the server's key changes."></span>
     </div>
   </fieldset>
 

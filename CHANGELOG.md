@@ -8,6 +8,11 @@ The `<CHANGES>` block of the plugin `.plg` mirrors the released entries below.
 
 ## [Unreleased]
 
+### Changed
+- The pinned tang thumbprint in the webGUI is relabelled "tang key fingerprint" and shown truncated
+  with an eye toggle to reveal the full value, with a tooltip clarifying it is a public fingerprint
+  (not a secret) — avoids the false impression that a secret key is exposed.
+
 ### Fixed
 - Tang health check no longer falsely flips to "key changed — re-pin" right after sealing/rotating:
   `jose jwk thp` emits no trailing newline, so the `while read` membership loop in
