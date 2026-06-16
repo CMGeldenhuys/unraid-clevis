@@ -27,6 +27,7 @@ url="$(cau_tang_url)"
 
 # Wait (bounded) for tang to become reachable; the network may still be coming up.
 timeout="$(cau_net_timeout)"; waited=0
+cau_log "auto-unlock starting (mode=$(cau_unlock_mode), tang=$url, wait<=${timeout}s)"
 until cau_tang_adv "$url" >/dev/null 2>&1; do
   [ "$waited" -ge "$timeout" ] && fail "Tang server '$url' not reachable within ${timeout}s."
   sleep 2; waited=$((waited + 2))
@@ -39,6 +40,7 @@ cau_log "tang reachable at $url after ${waited}s"
   || fail "clevis could not recover the passphrase from tang (key changed or tang rejected)."
 chmod 0600 "$KEYFILE" 2>/dev/null || true
 [ -s "$KEYFILE" ] || fail "Recovered an empty passphrase."
+cau_logv "recovered passphrase from sealed JWE (${SECRET_JWE##*/})"
 
 # Best-effort validation: if disks.ini is available (event mode), confirm the key
 # opens EVERY encrypted device. In early-boot 'go' mode disks.ini may not exist yet;
@@ -47,7 +49,11 @@ checked=0; opened=0
 while IFS=$'\t' read -r _name dev; do
   [ -b "$dev" ] && cau_is_luks "$dev" || continue
   checked=$((checked + 1))
-  cau_pass_opens "$dev" "$KEYFILE" && opened=$((opened + 1))
+  if cau_pass_opens "$dev" "$KEYFILE"; then
+    opened=$((opened + 1)); cau_logv "device $dev: key opens OK"
+  else
+    cau_logv "device $dev: key did NOT open"
+  fi
 done < <(cau_list_luks_devices)
 
 if [ "$checked" -gt 0 ] && [ "$opened" -ne "$checked" ]; then
@@ -57,5 +63,5 @@ fi
 msg="Passphrase recovered from tang; the array will start automatically."
 [ "$checked" -gt 0 ] && msg="Passphrase recovered from tang and validated against $checked device(s); the array will start automatically."
 cau_notify normal "Array auto-unlock ready" "$msg"
-cau_log "keyfile staged (validated against $checked device(s)); handing off to Unraid array start"
+cau_log "keyfile staged and validated against $checked device(s); Unraid will now open the encrypted devices"
 exit 0

@@ -72,6 +72,14 @@ $csrf   = $var['csrf_token'] ?? '';
       giving up and falling back to the manual passphrase prompt. The array start blocks for up to this long
       if tang is slow/unavailable.</blockquote>
 
+    <div class="cau-row">
+      <label for="cau-debug" title="Log extra per-step detail to the syslog during boot/array-start. Turn on only to troubleshoot.">Verbose boot logging</label>
+      <select id="cau-debug"><option value="false">Disabled</option><option value="true">Enabled</option></select>
+    </div>
+    <blockquote class="inline_help">Logs extra per-step and per-device detail to the system log
+      (<code>logger -t clevis.auto.unlock</code>) during boot and array-start. Leave <b>Disabled</b> for normal
+      use; enable it only to diagnose an unlock problem, then disable it again to keep the log quiet.</blockquote>
+
     <div class="cau-actions">
       <button type="button" id="cau-save" title="Save these settings">Save settings</button>
       <span id="cau-pinned" class="cau-muted"

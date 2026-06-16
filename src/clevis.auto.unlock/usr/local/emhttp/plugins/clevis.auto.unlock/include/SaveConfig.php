@@ -13,10 +13,12 @@ if ($url !== '' && !cau_valid_url($url)) cau_json(['ok' => false, 'error' => 'In
 $enabled = in_array((string)($_POST['enabled'] ?? ''), ['true', '1', 'on'], true);
 $mode    = ((string)($_POST['unlock_mode'] ?? 'event') === 'go') ? 'go' : 'event';
 $timeout = max(5, min(600, (int)($_POST['network_timeout'] ?? 60)));
+$debug   = in_array((string)($_POST['debug'] ?? ''), ['true', '1', 'on'], true);
 
 $cfg['enabled']         = $enabled;
 $cfg['unlock_mode']     = $mode;
 $cfg['network_timeout'] = $timeout;
+$cfg['debug']           = $debug;
 $cfg['tang']            = $cfg['tang'] ?? [];
 if ($url !== '') $cfg['tang']['url'] = $url;
 if (!isset($cfg['tang']['thp'])) $cfg['tang']['thp'] = '';

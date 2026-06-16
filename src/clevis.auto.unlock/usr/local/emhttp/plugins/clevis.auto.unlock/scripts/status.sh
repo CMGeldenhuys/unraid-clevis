@@ -23,6 +23,7 @@ tools="$(jq -nc \
 jq -nc \
   --argjson enabled "$(cau_enabled && echo true || echo false)" \
   --argjson sealed  "$(cau_is_sealed && echo true || echo false)" \
+  --argjson debug   "$(cau_debug_enabled && echo true || echo false)" \
   --arg url "$(cau_tang_url)" \
   --arg thp "$(cau_pinned_thp)" \
   --arg mode "$(cau_unlock_mode)" \
@@ -30,7 +31,7 @@ jq -nc \
   --argjson devices "$devs" \
   --argjson tools "$tools" \
   '{
-     config: { enabled:$enabled, sealed:$sealed, tang:{url:$url, thp:$thp}, unlock_mode:$mode, network_timeout:($timeout|tonumber? // 60) },
+     config: { enabled:$enabled, sealed:$sealed, debug:$debug, tang:{url:$url, thp:$thp}, unlock_mode:$mode, network_timeout:($timeout|tonumber? // 60) },
      devices: $devices,
      tools: $tools
    }'

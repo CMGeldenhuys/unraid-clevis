@@ -91,6 +91,7 @@
     $("cau-enabled").value = c.enabled ? "true" : "false";
     $("cau-mode").value = c.unlock_mode || "event";
     $("cau-timeout").value = c.network_timeout || 60;
+    $("cau-debug").value = c.debug ? "true" : "false";
     renderPinned((c.tang && c.tang.thp) || "");
     banner($("cau-status"), c.sealed ? "ok" : "", c.sealed
       ? ("Passphrase is sealed to tang; auto-unlock is " + (c.enabled ? "ENABLED." : "configured but DISABLED."))
@@ -152,7 +153,8 @@
   function save() {
     action($("cau-save"), "SaveConfig.php", {
       url: $("cau-url").value.trim(), enabled: $("cau-enabled").value,
-      unlock_mode: $("cau-mode").value, network_timeout: $("cau-timeout").value
+      unlock_mode: $("cau-mode").value, network_timeout: $("cau-timeout").value,
+      debug: $("cau-debug").value
     }, function (r) { show(r.ok, r.ok ? "Settings saved." : ("Save failed: " + (r.error || ""))); });
   }
   function seal() {

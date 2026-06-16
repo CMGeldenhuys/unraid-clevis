@@ -8,6 +8,16 @@ The `<CHANGES>` block of the plugin `.plg` mirrors the released entries below.
 
 ## [Unreleased]
 
+### Added
+- Boot-time syslog now records the unlock plainly: an "auto-unlock starting (mode=event, …)" line
+  at the array-start hook and a definitive "array unlocked via clevis+tang; staged key wiped"
+  confirmation once the array is mounted — previously the only lines were logged before Unraid
+  actually opened the devices, so a successful unlock left no clear record. An optional "Verbose
+  boot logging" toggle (Settings → config `debug`) adds opt-in per-step/per-device detail for
+  troubleshooting; the default stays quiet (net +2 concise lines per unlock).
+- Failed Seal / Rotate / Forget operations now leave a `[warning]` line in syslog (the error was
+  previously only returned to the webGUI), giving an audit trail for posture-changing actions.
+
 ### Changed
 - The pinned tang thumbprint in the webGUI is relabelled "tang key fingerprint" and shown truncated
   with an eye toggle to reveal the full value, with a tooltip clarifying it is a public fingerprint

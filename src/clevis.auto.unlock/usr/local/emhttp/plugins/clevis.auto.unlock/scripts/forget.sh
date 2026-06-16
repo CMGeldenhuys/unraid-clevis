@@ -7,9 +7,12 @@ here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib-common.sh
 . "$here/lib-common.sh"
 
-rm -f "$SECRET_JWE"
+rm -f "$SECRET_JWE" || cau_log "[warning] forget: could not remove $SECRET_JWE"
 if [ -f "$CONFIG_FILE" ]; then
-  tmp="$(mktemp)"; jq '.enabled=false' "$CONFIG_FILE" > "$tmp" && mv "$tmp" "$CONFIG_FILE"
+  tmp="$(mktemp)"
+  if jq '.enabled=false' "$CONFIG_FILE" > "$tmp" && mv "$tmp" "$CONFIG_FILE"; then :; else
+    rm -f "$tmp"; cau_log "[warning] forget: could not update $CONFIG_FILE"
+  fi
 fi
 cau_wipe_keyfile
 rm -f "/run/${PLUGIN}.health" 2>/dev/null || true

@@ -34,6 +34,10 @@ export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
 cau_log() { logger -t "$LOG_TAG" -- "$*" 2>/dev/null || true; }
 
+# Verbose log: emitted ONLY when debug is enabled in config (see cau_debug_enabled).
+# Keeps the default syslog quiet while allowing opt-in per-step/per-device boot detail.
+cau_logv() { cau_debug_enabled && cau_log "$@"; }
+
 # cau_notify <normal|warning|alert> <subject> <description>
 cau_notify() {
   local level="$1" subject="$2" desc="$3"
@@ -68,6 +72,7 @@ cau_pinned_thp() { cau_cfg '.tang.thp'; }
 cau_unlock_mode(){ cau_cfg '.unlock_mode' 'event'; }       # event | go
 cau_net_timeout(){ cau_int "$(cau_cfg '.network_timeout' '60')" 60; }
 cau_is_sealed()  { [ -f "$SECRET_JWE" ]; }
+cau_debug_enabled() { [ "$(cau_cfg '.debug' 'false')" = "true" ]; }  # opt-in verbose logging
 
 # --- LUKS device discovery ---------------------------------------------------
 # Emits "<name>\t<luks-device>" per encrypted Unraid device from disks.ini
@@ -128,10 +133,14 @@ cau_thp_advertised() {
 # --- keyfile handling --------------------------------------------------------
 # /root is tmpfs (RAM): the key never reaches persistent storage. shred on tmpfs
 # is best-effort overwrite; prompt unlink + RAM reclamation is the real guarantee.
+# Returns 0 if a staged keyfile was present and has now been wiped, 1 if there was
+# nothing staged. Callers (e.g. the started-event hook) use this as the signal that
+# WE auto-unlocked (only derive-key.sh ever stages /root/keyfile).
 cau_wipe_keyfile() {
-  [ -f "$KEYFILE" ] || return 0
+  [ -f "$KEYFILE" ] || return 1            # nothing staged
   shred -u -n1 "$KEYFILE" 2>/dev/null || rm -f "$KEYFILE"
   cau_log "wiped $KEYFILE"
+  return 0                                  # a staged key was present and is now wiped
 }
 
 # Temp file for transient cleartext (e.g. a passphrase under validation), pinned to

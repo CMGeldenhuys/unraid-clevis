@@ -17,7 +17,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib-common.sh
 . "$here/lib-common.sh"
 
-emit_err() { printf '{"ok":false,"error":%s}\n' "$(jq -Rn --arg m "$1" '$m')"; exit 1; }
+emit_err() { cau_log "[warning] seal failed: $1"; printf '{"ok":false,"error":%s}\n' "$(jq -Rn --arg m "$1" '$m')"; exit 1; }
 cleanup() { [ -n "${tmpkey:-}" ] && { shred -u "$tmpkey" 2>/dev/null || rm -f "$tmpkey"; }; unset pass 2>/dev/null || true; }
 trap cleanup EXIT
 
