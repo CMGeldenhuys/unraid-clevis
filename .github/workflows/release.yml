@@ -45,7 +45,7 @@ jobs:
       # user-owned accounts). Don't fail the release when it's unavailable — cosign
       # + SHA-256 still provide integrity; provenance starts working once public.
       - name: SLSA build provenance attestation
-        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         continue-on-error: true
         with:
           subject-path: |
